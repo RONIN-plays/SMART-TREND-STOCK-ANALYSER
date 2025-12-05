@@ -2,8 +2,11 @@
 import os
 from datetime import datetime
 import pandas as pd
-import yfinance as yf
 import matplotlib.pyplot as plt
+
+from utils.preprocess import add_all_indicators
+from utils.forecaster import make_forecast
+import yfinance as yf
 
 DATA_DIR = "data"
 OUT_DIR = "outputs"
@@ -35,7 +38,7 @@ def save_dataframe(df: pd.DataFrame, filename: str) -> str:
 
 def plot_close_price(df: pd.DataFrame, ticker: str) -> str:
     plt.figure(figsize=(10, 5))
-    plt.plot(df['Date'], df['Close'], label=f"{ticker} Close")
+    plt.plot(pd.to_datetime(df['Date']), df['Close'], label=f"{ticker} Close")
     plt.title(f"{ticker} — Close Price")
     plt.xlabel("Date")
     plt.ylabel("Price")
@@ -50,22 +53,69 @@ def plot_close_price(df: pd.DataFrame, ticker: str) -> str:
 
 
 def quick_stats(df: pd.DataFrame) -> None:
+    """
+    Safe quick statistics that works across pandas versions.
+    - Prints date range
+    - Prints numeric describe()
+    - Shows last 5 rows
+    """
     print("\n=== Quick stats ===")
-    print(df[['Date','Open','High','Low','Close','Volume']].describe(datetime_is_numeric=False))
+    # Ensure Date is datetime
+    if 'Date' in df.columns:
+        try:
+            df['Date'] = pd.to_datetime(df['Date'])
+            print("Date range:", df['Date'].min(), "to", df['Date'].max())
+        except Exception:
+            pass
+
+    # Numeric summary: select numeric columns only
+    numeric_df = df.select_dtypes(include='number')
+    if not numeric_df.empty:
+        print("\nNumeric summary:")
+        print(numeric_df.describe().round(4))
+    else:
+        print("\nNo numeric columns to summarize.")
+
     print("\nLast 5 rows:")
     print(df.tail())
 
 
 def main():
-    # example tickers: 'AAPL', 'TSLA', 'NSEI' (some markets), 'GOOGL'
-    tickers = ["AAPL", "TSLA"]    # change to what you want
+    # change tickers as you like
+    tickers = ["AAPL", "TSLA"]
+
     for t in tickers:
         try:
+            # 1) Download
             df = download_stock(t, period="2y", interval="1d")
+
+            # 2) Add indicators
+            df_ind = add_all_indicators(df)
+
+            # 3) Save processed CSV
             csv_name = f"{t}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            save_dataframe(df, csv_name)
-            plot_close_price(df, t)
-            quick_stats(df)
+            save_dataframe(df_ind, csv_name)
+
+            # 4) Plot close price
+            plot_close_price(df_ind, t)
+
+            # 5) Quick stats
+            quick_stats(df_ind)
+
+            # 6) Forecast (Prophet primary, SARIMAX fallback)
+            forecast_df, model_path, forecast_plot, method = make_forecast(
+                df_ind,
+                ticker=t,
+                periods=30
+            )
+
+            print(f"\nForecast completed for {t}:")
+            print(" - Method:", method)
+            print(" - Model saved at:", model_path)
+            print(" - Forecast CSV:", os.path.join(OUT_DIR, f"{t}_forecast.csv"))
+            print(" - Forecast plot:", forecast_plot)
+            print("--------------------------------------\n")
+
         except Exception as e:
             print(f"Error for {t}: {e}")
 
