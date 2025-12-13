@@ -4,6 +4,8 @@ from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
 from utils.eda import run_full_eda
+from utils.data_loader import download_stock
+
 
 
 from utils.preprocess import add_all_indicators
