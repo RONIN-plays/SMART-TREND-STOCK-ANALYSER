@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
+from utils.eda import run_full_eda
+
 
 from utils.preprocess import add_all_indicators
 from utils.forecaster import make_forecast
@@ -101,6 +103,8 @@ def main():
 
             # 5) Quick stats
             quick_stats(df_ind)
+            run_full_eda(df_ind, ticker=t)
+
 
             # 6) Forecast (Prophet primary, SARIMAX fallback)
             forecast_df, model_path, forecast_plot, method = make_forecast(
