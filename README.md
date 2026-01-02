@@ -10,6 +10,8 @@ Purpose: To predict stock market trends using AI and deliver insights for smarte
 
 Features: Time series forecasting, clustering, anomaly detection, and sentiment analysis.
 
+Output: The output prediction graphs of the stocks can be viewed in the AAPL_forecast.png (Apple.Inc) and TSLA_forecast.png (Tesla.Inc) in this repository
+
 🔧 Key Technologies
 
 Languages: Python
